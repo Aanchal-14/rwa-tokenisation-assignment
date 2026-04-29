@@ -40,7 +40,7 @@ describe("RWA Tokenization Flow", function () {
   it("Should mint tokens on deposit", async function () {
     const depositAmount = ethers.parseEther("1");
 
-    await treasury.connect(user).deposit({ value: depositAmount });
+    await treasury.connect(user).deposit(0n, { value: depositAmount });
 
     const expectedTokens = depositAmount * rate;
     const balance = await token.balanceOf(user.address);
@@ -50,45 +50,66 @@ describe("RWA Tokenization Flow", function () {
   it("Should emit Deposit event", async function () {
     const depositAmount = ethers.parseEther("1");
 
-    await expect(treasury.connect(user).deposit({ value: depositAmount }))
+    await expect(treasury.connect(user).deposit(0n, { value: depositAmount }))
       .to.emit(treasury, "Deposit")
       .withArgs(user.address, depositAmount, depositAmount * rate);
   });
 
   it("Should fail for zero deposit", async function () {
     await expect(
-      treasury.connect(user).deposit({ value: 0 })
-    ).to.be.revert;
+      treasury.connect(user).deposit(0n, { value: 0 })
+    ).to.be.revertedWith("Zero deposit");
   });
 
-
-  it("Should not exceed max supply", async function () {
-    const hugeDeposit = ethers.parseEther("20");
+  it("Should revert if minTokensOut is not met", async function () {
+    const depositAmount = ethers.parseEther("1");
+    const expectedTokens = depositAmount * rate;
+    const tooHighFloor = expectedTokens + 1n;
 
     await expect(
-      treasury.connect(user).deposit({ value: hugeDeposit })
-    ).to.be.revert;
+      treasury.connect(user).deposit(tooHighFloor, { value: depositAmount }),
+    ).to.be.revertedWith("Slippage");
+  });
+
+  it("Should succeed when minTokensOut equals expected mint amount", async function () {
+    const depositAmount = ethers.parseEther("1");
+    const expectedTokens = depositAmount * rate;
+
+    await treasury.connect(user).deposit(expectedTokens, { value: depositAmount });
+
+    expect(await token.balanceOf(user.address)).to.equal(expectedTokens);
+  });
+
+  it("Should not exceed max supply", async function () {
+    const hugeDeposit = maxSupply / rate + 1n;
+
+    await expect(
+      treasury.connect(user).deposit(0n, { value: hugeDeposit })
+    ).to.be.revertedWith("Max supply exceeded");
   });
 
   it("Should not allow non-treasury to mint", async function () {
     await expect(
       token.connect(user).mint(user.address, 100)
-    ).to.be.revert;
-  });
+      ).to.be.revertedWith("Not treasury");
+    });
 
   it("Only owner can withdraw", async function () {
     const depositAmount = ethers.parseEther("1");
-    await treasury.connect(user).deposit({ value: depositAmount });
+    await treasury.connect(user).deposit(0n, { value: depositAmount });
 
-    expect(
-      await treasury.connect(user).withdraw(depositAmount)
-    )
-  });
+    await expect(
+      treasury.connect(user).withdraw(depositAmount)
+    ).to.be.revertedWithCustomError(
+      treasury,
+      "OwnableUnauthorizedAccount"
+    );
+});
 
 
   it("Owner should withdraw ETH", async function () {
     const depositAmount = ethers.parseEther("1");
-    await treasury.connect(user).deposit({ value: depositAmount });
+    await treasury.connect(user).deposit(0n, { value: depositAmount });
 
     const balanceBefore = await ethers.provider.getBalance(owner.address);
 
@@ -106,7 +127,7 @@ describe("RWA Tokenization Flow", function () {
 
   it("Should emit Withdraw event", async function () {
     const depositAmount = ethers.parseEther("1");
-    await treasury.connect(user).deposit({ value: depositAmount });
+    await treasury.connect(user).deposit(0n, { value: depositAmount });
 
     await expect(treasury.withdraw(depositAmount))
       .to.emit(treasury, "Withdraw")
@@ -119,13 +140,13 @@ describe("RWA Tokenization Flow", function () {
   });
 
   it("Non-owner cannot update rate", async function () {
-    expect(await treasury.connect(user).setRate(200))
-  .to.be.revert
-
-
-
-
+    await expect(
+      treasury.connect(user).setRate(200)
+    ).to.be.revertedWithCustomError(
+      treasury,
+      "OwnableUnauthorizedAccount"
+    );
+  });
 
   
-  });
 });

@@ -9,7 +9,7 @@ interface IEightySixToken {
 
 contract Treasury is Ownable{
 
-    IEightySixToken public token;
+    IEightySixToken public immutable token;
     uint256 public rate;
 
     event Deposit(address indexed depositer, uint256 ethAmount, uint256 tokensMinted);
@@ -29,12 +29,11 @@ contract Treasury is Ownable{
         rate = _rate;
     }
 
-    function deposit() external payable {
-        require(msg.value>0, "Zero deposit value");
-        
+    function deposit(uint256 minTokensOut) external payable {
+        require(msg.value > 0, "Zero deposit");
         uint256 tokensToMint = msg.value * rate;
+        require(tokensToMint >= minTokensOut, "Slippage");
         token.mint(msg.sender, tokensToMint);
-
         emit Deposit(msg.sender, msg.value, tokensToMint);
     }
 
