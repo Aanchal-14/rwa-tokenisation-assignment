@@ -1,57 +1,54 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# RWA Tokenisation
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+ERC20 token (EightySixToken / EST) and a Treasury that mints tokens in exchange for POL on Polygon Amoy. Backend exposes read APIs and prepare-tx endpoints for client-side signing, and indexes Deposit/Withdraw events into SQLite.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## What this project does
 
-## Project Overview
+- **EightySixToken (EST)** — capped ERC20, only the Treasury can mint.
+- **Treasury** — mints `value × rate` EST per deposit, with `minTokensOut` slippage protection. Owner can `setRate` and `withdraw`.
+- **Backend** — never holds keys; returns unsigned txs for the user's wallet to sign.
+- **Indexer** — stores Deposit/Withdraw events in SQLite for per-user history.
 
-This example project includes:
+## Setup
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+### 1. Install
 
-## Usage
+```bash
+npm install
+cd backend && npm install && cd ..
+```
 
-### Running Tests
+### 2. Run the Hardhat unit tests
 
-To run all the tests in the project, execute the following command:
-
-```shell
+```bash
 npx hardhat test
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+### 3. `backend/.env`
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
+```
+RPC_URL=
+TOKEN_ADDRESS=0x0e4905358bC629d71d69F3D338990ab3F6D0bDF9
+TREASURY_ADDRESS=0xEe652c0a1e288d07AB67ee73638701f48fD8e59E
+PRIVATE_KEY=
+PORT=3000
+DB_PATH=data/indexer.db
 ```
 
-### Make a deployment to Sepolia
+### 4. Run the backend
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+```bash
+cd backend
+npm run dev
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## API endpoints
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/token/balance/:address` | EST balance |
+| GET | `/api/treasury/deposit-preview/:amount` | EST you get for X POL |
+| POST | `/api/treasury/deposit/prepare` | Unsigned tx for deposit |
+| POST | `/api/treasury/withdraw/prepare` | Unsigned tx for withdraw |
+| GET | `/api/history/deposits/:address` | User's deposit history |
+| GET | `/api/history/withdraws/:address` | User's withdraw history |
