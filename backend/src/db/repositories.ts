@@ -59,36 +59,17 @@ const listDepositsByDepositer = db.prepare(`
   SELECT * FROM deposits WHERE depositer = ?
   ORDER BY block_number DESC, log_index DESC LIMIT ? OFFSET ?
 `);
-const listAllDeposits = db.prepare(`
-  SELECT * FROM deposits ORDER BY block_number DESC, log_index DESC LIMIT ? OFFSET ?
-`);
-const listAllWithdraws = db.prepare(`
-  SELECT * FROM withdraws ORDER BY block_number DESC, log_index DESC LIMIT ? OFFSET ?
+
+const listWithdrawsByOwner = db.prepare(`
+  SELECT * FROM withdraws WHERE owner_address = ?
+  ORDER BY block_number DESC, log_index DESC LIMIT ? OFFSET ?
 `);
 
 export const queries = {
-  deposits(opts: { depositer?: string; limit: number; offset: number }) {
-    return opts.depositer
-      ? (listDepositsByDepositer.all(opts.depositer, opts.limit, opts.offset) as DepositRow[])
-      : (listAllDeposits.all(opts.limit, opts.offset) as DepositRow[]);
+  depositsByDepositer(opts: { depositer: string; limit: number; offset: number }) {
+    return listDepositsByDepositer.all(opts.depositer, opts.limit, opts.offset) as DepositRow[];
   },
-  withdraws(opts: { limit: number; offset: number }) {
-    return listAllWithdraws.all(opts.limit, opts.offset) as WithdrawRow[];
-  },
-};
-
-const getStateStmt = db.prepare(`SELECT value FROM indexer_state WHERE key = ?`);
-const setStateStmt = db.prepare(`
-  INSERT INTO indexer_state (key, value) VALUES (?, ?)
-  ON CONFLICT(key) DO UPDATE SET value = excluded.value
-`);
-
-export const indexerState = {
-  getLastBlock(): number | undefined {
-    const row = getStateStmt.get("last_indexed_block") as { value: string } | undefined;
-    return row ? Number(row.value) : undefined;
-  },
-  setLastBlock(blockNumber: number) {
-    setStateStmt.run("last_indexed_block", String(blockNumber));
+  withdrawsByOwner(opts: { owner: string; limit: number; offset: number }) {
+    return listWithdrawsByOwner.all(opts.owner, opts.limit, opts.offset) as WithdrawRow[];
   },
 };

@@ -1,21 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import {
-  deposit,
   depositPreview,
-  getSignerAddress,
-  getTreasuryInfo,
-  setRate,
-  withdraw,
+  prepareDeposit,
+  prepareWithdraw,
 } from "../services/treasury.service.js";
-
-export async function treasuryInfoController(_req: Request, res: Response, next: NextFunction) {
-  try {
-    const info = await getTreasuryInfo();
-    res.json({ ...info, signer: getSignerAddress() });
-  } catch (e) {
-    next(e);
-  }
-}
 
 export async function depositPreviewController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -27,31 +15,21 @@ export async function depositPreviewController(req: Request, res: Response, next
   }
 }
 
-export async function depositController(req: Request, res: Response, next: NextFunction) {
+export async function prepareDepositController(req: Request, res: Response, next: NextFunction) {
   try {
-    const { amountEth } = req.body ?? {};
+    const { from, amountEth, minTokensOut } = req.body ?? {};
     if (amountEth === undefined) return res.status(400).json({ error: "amountEth required" });
-    res.json(await deposit(String(amountEth)));
+    res.json(await prepareDeposit({ from, amountEth: String(amountEth), minTokensOut }));
   } catch (e) {
     next(e);
   }
 }
 
-export async function setRateController(req: Request, res: Response, next: NextFunction) {
+export async function prepareWithdrawController(req: Request, res: Response, next: NextFunction) {
   try {
-    const { rate } = req.body ?? {};
-    if (rate === undefined) return res.status(400).json({ error: "rate required" });
-    res.json(await setRate(String(rate)));
-  } catch (e) {
-    next(e);
-  }
-}
-
-export async function withdrawController(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { amount } = req.body ?? {};
-    if (amount === undefined) return res.status(400).json({ error: "amount required" });
-    res.json(await withdraw(String(amount)));
+    const { from, amountWei } = req.body ?? {};
+    if (amountWei === undefined) return res.status(400).json({ error: "amountWei required" });
+    res.json(await prepareWithdraw({ from, amountWei: String(amountWei) }));
   } catch (e) {
     next(e);
   }

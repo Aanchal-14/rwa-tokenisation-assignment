@@ -5,8 +5,9 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "node --loader ts-node/esm src/index.ts",
-    "start": "node --loader ts-node/esm src/index.ts"
+    "dev": "node --watch --disable-warning=ExperimentalWarning --import tsx src/index.ts",
+    "start": "node --disable-warning=ExperimentalWarning --import tsx src/index.ts",
+    "test:flow": "node scripts/test-flow.mjs"
   },
   "keywords": [],
   "author": "",
@@ -21,8 +22,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.17",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "~5.8.0"
   }
 }

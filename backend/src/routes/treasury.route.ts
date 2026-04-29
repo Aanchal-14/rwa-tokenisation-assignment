@@ -1,19 +1,15 @@
 import { Router } from "express";
 import {
-  depositController,
   depositPreviewController,
-  setRateController,
-  treasuryInfoController,
-  withdrawController,
+  prepareDepositController,
+  prepareWithdrawController,
 } from "../controller/treasury.controller.js";
 
 const router = Router();
 
-router.get("/info", treasuryInfoController);
 router.get("/deposit-preview/:amount", depositPreviewController);
 
-router.post("/deposit", depositController);
-router.post("/set-rate", setRateController);
-router.post("/withdraw", withdrawController);
+router.post("/deposit/prepare", prepareDepositController);
+router.post("/withdraw/prepare", prepareWithdrawController);
 
 export default router;

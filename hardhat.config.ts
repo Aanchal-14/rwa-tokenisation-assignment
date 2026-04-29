@@ -1,24 +1,23 @@
 import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import hardhatVerify from "@nomicfoundation/hardhat-verify";
 import { configVariable, defineConfig } from "hardhat/config";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 export default defineConfig({
-  plugins: [hardhatToolboxMochaEthersPlugin],
+  plugins: [hardhatToolboxMochaEthersPlugin, hardhatVerify],
+  verify: {
+    etherscan: {
+      apiKey: process.env.POLYGONSCAN_API_KEY ?? "",
+    },
+  },
   solidity: {
-    profiles: {
-      default: {
-        version: "0.8.28",
-      },
-      production: {
-        version: "0.8.28",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
+    version: "0.8.28",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
       },
     },
   },
@@ -26,6 +25,9 @@ export default defineConfig({
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
+      forking: {
+        url: configVariable("RPC_URL"),
+      },
     },
     hardhatOp: {
       type: "edr-simulated",
@@ -41,8 +43,11 @@ export default defineConfig({
     amoy: {
       type: "http",
       chainType: "l1",
+      chainId: 80002,
       url: configVariable("RPC_URL"),
       accounts: [configVariable("PRIVATE_KEY")],
+
+
     },
 
     ganache: {

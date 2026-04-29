@@ -11,7 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/token", tokenRoutes);
 app.use("/api/treasury", treasuryRoutes);
 app.use("/api/history", historyRoutes);

@@ -1,65 +1,57 @@
 import { ethers } from "ethers";
-import { events, indexerState } from "../db/repositories.js";
-import { getBlockTimestamp, treasuryContract } from "./contracts.js";
+import { events } from "../db/repositories.js";
+import { provider, treasuryContract } from "./contracts.js";
 
-type EventKind = "Deposit" | "Withdraw";
+export function startIndexer() {
+  treasuryContract.on(treasuryContract.filters.Deposit(), async (...args) => {
+    try {
+      const payload = args[args.length - 1] as ethers.ContractEventPayload;
+      const log = payload.log;
+      const depositer = ethers.getAddress(log.args[0]);
+      const ethAmount = log.args[1].toString();
+      const tokensMinted = log.args[2].toString();
+      console.log(`[indexer] Deposit  block=${log.blockNumber} tx=${log.transactionHash} from=${depositer} eth=${ethAmount} tokens=${tokensMinted}`);
 
-const blockTimestampCache = new Map<number, number>();
-async function timestampOf(blockNumber: number): Promise<number> {
-  const cached = blockTimestampCache.get(blockNumber);
-  if (cached !== undefined) return cached;
-  const ts = await getBlockTimestamp(blockNumber);
-  blockTimestampCache.set(blockNumber, ts);
-  return ts;
-}
-
-async function persistEvent(kind: EventKind, log: ethers.EventLog | ethers.Log) {
-  const evt = log as ethers.EventLog;
-  const ts = await timestampOf(evt.blockNumber);
-  const base = {
-    tx_hash: evt.transactionHash,
-    log_index: evt.index,
-    block_number: evt.blockNumber,
-    block_timestamp: ts,
-  };
-
-  switch (kind) {
-    case "Deposit": {
-      const [depositer, ethAmount, tokensMinted] = evt.args ?? [];
+      const block = await provider.getBlock(log.blockNumber);
       events.insertDeposit({
-        ...base,
-        depositer: ethers.getAddress(depositer),
-        eth_amount: ethAmount.toString(),
-        tokens_minted: tokensMinted.toString(),
+        tx_hash: log.transactionHash,
+        log_index: log.index,
+        block_number: log.blockNumber,
+        block_timestamp: block?.timestamp ?? 0,
+        depositer,
+        eth_amount: ethAmount,
+        tokens_minted: tokensMinted,
       });
-      return;
+      console.log(`[indexer] Deposit stored`);
+    } catch (err) {
+      console.error("[indexer] Deposit handler failed:", (err as Error).message ?? err);
     }
-    case "Withdraw": {
-      const [owner, amount] = evt.args ?? [];
+  });
+
+  treasuryContract.on(treasuryContract.filters.Withdraw(), async (...args) => {
+    try {
+      const payload = args[args.length - 1] as ethers.ContractEventPayload;
+      const log = payload.log;
+      const owner = ethers.getAddress(log.args[0]);
+      const amount = log.args[1].toString();
+      console.log(`[indexer] Withdraw block=${log.blockNumber} tx=${log.transactionHash} owner=${owner} amount=${amount}`);
+
+      const block = await provider.getBlock(log.blockNumber);
       events.insertWithdraw({
-        ...base,
-        owner_address: ethers.getAddress(owner),
-        amount: amount.toString(),
+        tx_hash: log.transactionHash,
+        log_index: log.index,
+        block_number: log.blockNumber,
+        block_timestamp: block?.timestamp ?? 0,
+        owner_address: owner,
+        amount,
       });
-      return;
+      console.log(`[indexer] Withdraw stored`);
+    } catch (err) {
+      console.error("[indexer] Withdraw handler failed:", (err as Error).message ?? err);
     }
-  }
-}
-
-function handle(kind: EventKind, log: ethers.EventLog | ethers.Log) {
-  persistEvent(kind, log)
-    .then(() => indexerState.setLastBlock((log as ethers.EventLog).blockNumber))
-    .catch((err) => console.error(`[indexer] persist ${kind} failed:`, err));
-}
-
-export function startIndexer(): void {
-  treasuryContract.on(treasuryContract.filters.Deposit(), (...args) => {
-    handle("Deposit", args[args.length - 1] as ethers.EventLog);
   });
-  treasuryContract.on(treasuryContract.filters.Withdraw(), (...args) => {
-    handle("Withdraw", args[args.length - 1] as ethers.EventLog);
-  });
-  console.log("[indexer] live listeners attached for Deposit/Withdraw");
+
+  console.log("[indexer] listening for Deposit/Withdraw");
 }
 
 export function stopIndexer() {

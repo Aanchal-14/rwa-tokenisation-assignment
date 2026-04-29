@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 function required(name: string): string {
   const v = process.env[name];
@@ -19,7 +19,6 @@ function address(name: string): string {
 
 export const config = {
   rpcUrl: required("RPC_URL"),
-  privateKey: required("PRIVATE_KEY"),
   tokenAddress: address("TOKEN_ADDRESS"),
   treasuryAddress: address("TREASURY_ADDRESS"),
   port: Number(process.env.PORT ?? 3000),

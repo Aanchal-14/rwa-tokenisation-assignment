@@ -12,11 +12,6 @@ db.exec(`
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
 
-  CREATE TABLE IF NOT EXISTS indexer_state (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
-
   CREATE TABLE IF NOT EXISTS deposits (
     tx_hash TEXT NOT NULL,
     log_index INTEGER NOT NULL,
@@ -43,9 +38,5 @@ db.exec(`
 `);
 
 export function closeDb() {
-  try {
     db.close();
-  } catch {
-    /* ignore */
-  }
 }

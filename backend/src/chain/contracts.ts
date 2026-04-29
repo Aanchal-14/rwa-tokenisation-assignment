@@ -5,13 +5,11 @@ import eightySixTokenArtifact from "../../../artifacts/contracts/EightySixToken.
 import treasuryArtifact from "../../../artifacts/contracts/Treasury.sol/Treasury.json" with { type: "json" };
 
 export const provider = new ethers.JsonRpcProvider(config.rpcUrl);
-export const signer = new ethers.Wallet(config.privateKey, provider);
 
-export const tokenAbi = eightySixTokenArtifact.abi;
-export const treasuryAbi = treasuryArtifact.abi;
+export const treasuryInterface = new ethers.Interface(treasuryArtifact.abi);
 
-export const tokenContract = new ethers.Contract(config.tokenAddress, tokenAbi, signer);
-export const treasuryContract = new ethers.Contract(config.treasuryAddress, treasuryAbi, signer);
+export const tokenContract = new ethers.Contract(config.tokenAddress, eightySixTokenArtifact.abi, provider);
+export const treasuryContract = new ethers.Contract(config.treasuryAddress, treasuryArtifact.abi, provider);
 
 export async function getBlockTimestamp(blockNumber: number): Promise<number> {
   const block = await provider.getBlock(blockNumber);
